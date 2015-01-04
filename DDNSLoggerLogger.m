@@ -8,6 +8,9 @@
 // NSLogger is needed: http://github.com/fpillet/NSLogger
 #import "LoggerClient.h"
 
+NSString * const DDNSLoggerOptionBonjourServiceName = @"bonjourServiceName";
+NSString * const DDNSLoggerOptionCaptureSystemConsole = @"captureSystemConsole";
+
 @interface DDNSLoggerLogger ()
 
 @property (nonatomic, assign) BOOL running;
@@ -42,11 +45,25 @@ static DDNSLoggerLogger *sharedInstance;
     self.running = NO;
 }
 
-- (void)setupWithBonjourServiceName:(NSString *)serviceName {
+- (void)setupWithOptions:(NSDictionary *)options {
     BOOL running = self.running;
     [self stop];
-    LoggerSetupBonjour(NULL, NULL, (__bridge CFStringRef)serviceName);
-    if (running) {
+	
+	NSString *bonjourServiceName = options[DDNSLoggerOptionBonjourServiceName];
+	BOOL captureSystemConsole = YES;
+	if (options[DDNSLoggerOptionCaptureSystemConsole] != nil) {
+		captureSystemConsole = [options[DDNSLoggerOptionCaptureSystemConsole] boolValue];
+	}
+	
+	uint32_t loggerOptions = LOGGER_DEFAULT_OPTIONS;
+	if (!captureSystemConsole) {
+		loggerOptions &= (uint32_t)~kLoggerOption_CaptureSystemConsole;
+	}
+	
+    LoggerSetupBonjour(NULL, NULL, (__bridge CFStringRef)bonjourServiceName);
+	LoggerSetOptions(NULL, loggerOptions);
+	
+	if (running) {
         [self start];
     }
 }
